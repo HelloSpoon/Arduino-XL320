@@ -16,8 +16,8 @@
  
  */
 
-#ifndef HELLOSPOON_H_
-#define HELLOSPOON_H_
+#ifndef XL320_H_
+#define XL320_H_
 
 /*EEPROM Area*/
 #define XL_MODEL_NUMBER_L           0
@@ -60,38 +60,79 @@
 #define Tx_MODE                     1
 #define Rx_MODE                     0
 
-
 #include <inttypes.h>
+#include <Stream.h>
 
-class HelloSpoon {
+class XL320 {
 private:
 	unsigned char Direction_Pin;
 	volatile char gbpParamEx[130+10];
+	Stream *stream;
+
+  void nDelay(uint32_t nTime);
+
 
 public:
-	HelloSpoon();
-	virtual ~HelloSpoon();	
+	XL320(); 
+	virtual ~XL320();	
 	
-	void begin();
+	void begin(Stream &stream);
 	
-	void moveJoint(int Joint, int value);
-	void setJointSpeed(int Joint, int value);
-	void LED(int Joint, char led_color[]);
-	void setJointTorque(int Joint, int value);
+	void moveJoint(int id, int value);
+	void setJointSpeed(int id, int value);
+	void LED(int id, char led_color[]);
+	void setJointTorque(int id, int value);
 
-	void TorqueON(int Joint);
-	void TorqueOFF(int Joint);
-	void deactivateTrunk();
-	void activateTrunk();
+	void TorqueON(int id);
+	void TorqueOFF(int id);
 
 	void quickTest();
 
 	int getSpoonLoad();
-	int getJointPosition(int Joint);
-	int getJointSpeed(int Joint);
-	int getJointLoad(int Joint);
-	int getJointTemperature(int Joint);
-	int isJointMoving(int Joint);
+	int getJointPosition(int id);
+	int getJointSpeed(int id);
+	int getJointLoad(int id);
+	int getJointTemperature(int id);
+	int isJointMoving(int id);
+
+	int sendPacket(int id, int Address, int value);
+	int readPacket(unsigned char *buffer, size_t size);
+
+	int RXsendPacket(int id, int Address);
+	int RXsendPacket(int id, int Address, int size);
+
+	int flush();
+
+	class Packet {
+	  bool freeData;
+	  public:
+	    unsigned char *data;
+	    size_t data_size;
+
+	    // wrap a received data stream in an Packet object for analysis
+	    Packet(unsigned char *data, size_t size);
+	    // build a packet into the pre-allocated data array
+	    // if data is null it will be malloc'ed and free'd on destruction.
+	    
+	    Packet(
+	      unsigned char *data, 
+	      size_t        size,
+	      unsigned char id,
+	      unsigned char instruction,
+	      int           parameter_data_size,
+	      ...);
+	    ~Packet();
+	    unsigned char getId();
+	    int getLength();
+	    int getSize();
+	    int getParameterCount();
+	    unsigned char getInstruction();
+            unsigned char getParameter(int n);
+	    bool isValid();
+
+	    void toStream(Stream &stream);
+
+	};
 };
 
 #endif
